@@ -1,27 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
+const { protect } = require('../middleware/auth');
 
+// GET all projects - Public
 router.get('/', async (req, res) => {
   try {
-    const projects = await Project.find();
+    const projects = await Project.find().sort({ createdAt: -1 });
     res.json(projects);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
+// GET single project - Public
 router.get('/:id', async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
     res.json(project);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-router.post('/', async (req, res) => {
+// CREATE project - PROTECTED (only authenticated users)
+router.post('/', protect, async (req, res) => {
   try {
     const project = new Project(req.body);
     const newProject = await project.save();
@@ -31,21 +37,31 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+// UPDATE project - PROTECTED
+router.put('/:id', protect, async (req, res) => {
   try {
-    const project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!project) return res.status(404).json({ message: 'Project not found' });
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
     res.json(project);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-router.delete('/:id', async (req, res) => {
+// DELETE project - PROTECTED
+router.delete('/:id', protect, async (req, res) => {
   try {
     const project = await Project.findByIdAndDelete(req.params.id);
-    if (!project) return res.status(404).json({ message: 'Project not found' });
-    res.json({ message: 'Project deleted' });
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.json({ message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
